@@ -1,0 +1,9 @@
+# macOS files.
+.DS_Store
+
+# Visual Studio Code (VS Code) files.
+.history
+.vscode
+
+# Text edit swap files
+.swp

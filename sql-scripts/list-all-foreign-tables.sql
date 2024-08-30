@@ -1,0 +1,1 @@
+SELECT foreign_table_schema, foreign_table_name, foreign_server_name FROM information_schema.foreign_tables;
