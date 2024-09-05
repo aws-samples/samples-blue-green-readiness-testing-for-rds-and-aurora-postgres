@@ -96,6 +96,18 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# Validate input
+if [[ -z $DB_CONNECTION_STRING ]]; then
+  if [[ -z $DB_HOST ]]; then
+    printf "\nError: You must provide either a connection-string or a host\n\n"
+    usage
+  fi
+else
+  if [[ -z $DB_HOST ]]; then
+    DB_HOST=$(printf "$DB_CONNECTION_STRING" | cut -d'@' -f2 | cut -d':' -f1)
+  fi
+fi
+
 # Prepare log file if needed
 if [[ $NO_LOG -eq 0 ]]; then
   TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -129,7 +141,7 @@ function get_databases() {
   if [[ -z $DB_CONNECTION_STRING ]]; then
     psql -h $DB_HOST -p $DB_PORT -U $DB_USER -t -c "SELECT datname FROM pg_database WHERE datistemplate = false AND datname NOT IN ('rdsadmin', 'template0', 'template1');" -A
   else
-    echo $DB_CONNECTION_STRING | cut -d'/' -f4
+    printf "$DB_CONNECTION_STRING" | cut -d'/' -f4
   fi
 }
 
@@ -141,7 +153,7 @@ function check_all_databases() {
   local issues_found=0
 
   for db in $databases; do
-    printf "\n============================================================\n"
+    printf "\n\n============================================================\n"
     printf "Checking database: %s\n" "$db"
     printf "============================================================\n"
     DB_NAME=$db
@@ -181,7 +193,7 @@ function check_all_databases() {
     fi
 
     # Check for presence of pg_largeobject
-    printf "============================================================\n"
+    printf "\n============================================================\n"
     printf "Checking for incompatible pg_largeobjects"
     printf "\n ... ... \n"
     check_pg_largeobject="SELECT EXISTS (SELECT 1 FROM pg_largeobject);"
@@ -196,7 +208,7 @@ function check_all_databases() {
     fi
 
     # Check for presence of foreign tables (corrected)
-    printf "===============================================================================================\n"
+    printf "\n===============================================================================================\n"
     printf "Checking for foreign tables which will need to be recreated in the Green environment manually"
     printf "\n ... ... \n"
     check_foreign_tables="SELECT EXISTS (SELECT * FROM information_schema.foreign_tables);"
@@ -227,12 +239,12 @@ function check_all_databases() {
 
   # Output readiness message
   if [[ $issues_found -eq 1 ]]; then
-    printf "\n==================================================================================================================================\n"
+    printf "\n\n==================================================================================================================================\n"
     printf "Cluster %s is NOT READY for usage with Blue/Green Deployments\n" "$DB_HOST"
     printf "Please check the script output, fix any issues listed, and try again.\n"
     printf "==================================================================================================================================\n"
   else
-    printf "\n===========================================================================================================\n"
+    printf "\n\n===========================================================================================================\n"
     printf "Cluster %s is READY for usage with Blue/Green Deployments\n" "$DB_HOST"
     printf "============================================================================================================\n"
   fi
@@ -260,6 +272,10 @@ if [[ -n $DB_ENDPOINT_FILE ]]; then
   printf "\nUsing database endpoints from file: %s\n" "$DB_ENDPOINT_FILE"
   process_endpoints_file
 else
-  printf "\nUsing default host and database name input options\n"
+  if [[ -n $DB_CONNECTION_STRING ]]; then
+    printf "\nUsing connection-string input option\n"
+  else
+    printf "\nUsing default database host and user input options\n"
+  fi
   check_all_databases
 fi
