@@ -104,7 +104,8 @@ if [[ -z $DB_CONNECTION_STRING ]]; then
   fi
 else
   if [[ -z $DB_HOST ]]; then
-    DB_HOST=$(printf "$DB_CONNECTION_STRING" | cut -d'@' -f2 | cut -d':' -f1)
+    # DB_HOST=$(printf "$DB_CONNECTION_STRING" | cut -d'@' -f2 | cut -d':' -f1)
+    DB_HOST=$(printf "$DB_CONNECTION_STRING" | awk -F'@' '{print $2}' | awk -F':' '{print $1}')
   fi
 fi
 
@@ -141,7 +142,8 @@ function get_databases() {
   if [[ -z $DB_CONNECTION_STRING ]]; then
     psql -h $DB_HOST -p $DB_PORT -U $DB_USER -t -c "SELECT datname FROM pg_database WHERE datistemplate = false AND datname NOT IN ('rdsadmin', 'template0', 'template1');" -A
   else
-    printf "$DB_CONNECTION_STRING" | cut -d'/' -f4
+    # printf "$DB_CONNECTION_STRING" | cut -d'/' -f4
+    printf "$DB_CONNECTION_STRING" | awk -F'/' '{print $4}'
   fi
 }
 
