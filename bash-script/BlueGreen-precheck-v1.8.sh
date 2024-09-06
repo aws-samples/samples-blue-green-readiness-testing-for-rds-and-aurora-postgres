@@ -91,23 +91,26 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     *)
+      printf "\nError: Invalid argument: %s\n\n" "$1"
       usage
       ;;
   esac
 done
 
 # Validate input
-if [[ -z $DB_CONNECTION_STRING ]]; then
-  if [[ -z $DB_HOST ]]; then
-    printf "\nError: You must provide either a connection-string or a host\n\n"
+if [[ -n $DB_ENDPOINT_FILE ]]; then
+  if [[ -s $DB_ENDPOINT_FILE && (-z $DB_ENDPOINT_USER || -z $DB_ENDPOINT_PASS) ]]; then
+      printf "\nError: --file-user and --file-password must be provided when using --endpoints-file\n\n"
+      usage
+  fi
+elif [[ -z $DB_CONNECTION_STRING && -z $DB_HOST ]]; then
+    printf "\nError: You must provide either a connection-string, a host, or an endpoints-file\n\n"
     usage
-  fi
-else
-  if [[ -z $DB_HOST ]]; then
-    # DB_HOST=$(printf "$DB_CONNECTION_STRING" | cut -d'@' -f2 | cut -d':' -f1)
+elif [[ -n $DB_CONNECTION_STRING ]]; then
     DB_HOST=$(printf "$DB_CONNECTION_STRING" | awk -F'@' '{print $2}' | awk -F':' '{print $1}')
-  fi
 fi
+
+# By this point we have an endpoints-file, a connection-string and host, or a host
 
 # Prepare log file if needed
 if [[ $NO_LOG -eq 0 ]]; then
@@ -142,7 +145,6 @@ function get_databases() {
   if [[ -z $DB_CONNECTION_STRING ]]; then
     psql -h $DB_HOST -p $DB_PORT -U $DB_USER -t -c "SELECT datname FROM pg_database WHERE datistemplate = false AND datname NOT IN ('rdsadmin', 'template0', 'template1');" -A
   else
-    # printf "$DB_CONNECTION_STRING" | cut -d'/' -f4
     printf "$DB_CONNECTION_STRING" | awk -F'/' '{print $4}'
   fi
 }
@@ -267,10 +269,6 @@ function process_endpoints_file() {
 
 # Decide whether to use provided endpoints file or default host and database name
 if [[ -n $DB_ENDPOINT_FILE ]]; then
-  if [[ -z $DB_ENDPOINT_USER || -z $DB_ENDPOINT_PASS ]]; then
-    printf "Error: --file-user and --file-password must be provided when using --endpoints-file\n"
-    exit 1
-  fi
   printf "\nUsing database endpoints from file: %s\n" "$DB_ENDPOINT_FILE"
   process_endpoints_file
 else
