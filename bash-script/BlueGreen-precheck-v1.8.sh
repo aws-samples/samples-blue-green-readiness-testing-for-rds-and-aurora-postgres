@@ -170,9 +170,9 @@ function check_all_databases() {
           WHEN indisprimary IS NULL AND c.relreplident != 'f' THEN
             ' ADD PRIMARY KEY (' || string_agg(a.attname, ', ') || ');'
           WHEN indisprimary IS NULL AND c.relreplident = 'f' THEN
-            ' SET REPLICA IDENTITY FULL; ADD PRIMARY KEY (' || string_agg(a.attname, ', ') || ');'
+            ' REPLICA IDENTITY FULL; ADD PRIMARY KEY (' || string_agg(a.attname, ', ') || ');'
           WHEN c.relreplident != 'f' THEN
-            ' SET REPLICA IDENTITY FULL;'
+            ' REPLICA IDENTITY FULL;'
           ELSE
             ''
         END AS proposed_fix
