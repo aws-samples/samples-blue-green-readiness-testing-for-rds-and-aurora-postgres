@@ -189,11 +189,13 @@ function check_all_databases() {
       GROUP BY n.nspname, c.relname, c.relreplident, indisprimary;
     "
 
-    proposed_fixes=$(exec_query "$fix_tables_query")
+    proposed_fixes=$(exec_query "$fix_tables_query" | sed -n "/;$/p")
     if [[ -n $proposed_fixes ]]; then
       printf "\nProposed commands to fix tables in %s:\n" "$db"
       printf "%s\n" "$proposed_fixes"
       issues_found=1
+    else
+      printf "The tables in the database do not need to be altered\n"
     fi
 
     # Check for presence of pg_largeobject
